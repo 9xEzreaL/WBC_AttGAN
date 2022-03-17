@@ -105,7 +105,7 @@ class Discriminators(nn.Module):
         )
         self.fc_cls = nn.Sequential(
             LinearBlock(1024 * self.f_size * self.f_size, fc_dim, fc_norm_fn, fc_acti_fn),
-            LinearBlock(fc_dim, 13, 'none', 'none')
+            LinearBlock(fc_dim, 6, 'none', 'none')
         )
     
     def forward(self, x):

@@ -11,6 +11,8 @@ import torch
 import torch.utils.data as data
 import torchvision.transforms as transforms
 from PIL import Image
+import torchio as tio
+import random
 
 
 class Custom(data.Dataset):
@@ -69,6 +71,72 @@ class CelebA(data.Dataset):
     def __len__(self):
         return self.length
 
+
+class WBC(data.Dataset):
+    def __init__(self, data_path, attr_path, image_size, mode, selected_attrs, aug):
+        super(WBC, self).__init__()
+        self.aug = aug
+        self.data_path = data_path
+        att_list = open(attr_path, 'r', encoding='utf-8').readlines()[1].split()
+        atts = [att_list.index(att) + 1 for att in selected_attrs]
+        images = np.loadtxt(attr_path, skiprows=2, usecols=[0], dtype=np.str)
+        labels = np.loadtxt(attr_path, skiprows=2, usecols=atts, dtype=np.int)
+
+        if mode == 'train':
+            self.images = images[:2820]
+            self.labels = labels[:2820]
+        if mode == 'valid':
+            self.images = images[-24:-12]
+            self.labels = labels[-24:-12]
+            # self.images = images[:20]
+            # self.labels = labels[:20]
+        if mode == 'test':
+            self.images = images[-12:]
+            self.labels = labels[-12:]
+
+        self.tf = transforms.Compose([
+            transforms.Resize(int(240 * random.uniform(1.15,1.25))),
+            transforms.ColorJitter(brightness=(0.9, 1.1), contrast=(0.9, 1.1)),
+            transforms.RandomHorizontalFlip(p=0.5),
+            transforms.RandomVerticalFlip(p=0.5),
+            transforms.RandomRotation(degrees=(0,15)),
+            transforms.ToTensor()
+            # transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+        ])
+
+        self.length = len(self.images)
+
+    # not in use
+    def get_augmentation_transform(self):
+        FUNCTION_MAP = {'flp': tio.RandomFlip(axes=('LR',), p=0.5),
+                        'deg': tio.RandomAffine(degrees=(0,10), p=1),
+                        }
+        aug_list = []
+        if self.aug != None:
+            for i in self.aug:
+                aug = FUNCTION_MAP[i]
+                aug_list.append(aug)
+        augment = tio.Compose(aug_list)
+
+        return augment
+
+    def __getitem__(self, index):
+        img = self.tf(Image.open(os.path.join(self.data_path, self.images[index]))) # (b, h, w)
+        att = torch.tensor((self.labels[index] + 1) // 2)
+
+        osize = img.shape[2]
+        w_offset = random.randint(0, max(0, osize - 256 - 1))
+        h_offset = random.randint(0, max(0, osize - 256 - 1))
+        img = img[:, h_offset:h_offset + 256, w_offset:w_offset + 256]
+        img = img / img.max()
+        img = transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))(img)
+
+        return img, att
+
+    def __len__(self):
+        return self.length
+
+
 class CelebA_HQ(data.Dataset):
     def __init__(self, data_path, attr_path, image_list_path, image_size, mode, selected_attrs):
         super(CelebA_HQ, self).__init__()
@@ -106,7 +174,7 @@ class CelebA_HQ(data.Dataset):
     def __len__(self):
         return self.length
 
-def check_attribute_conflict(att_batch, att_name, att_names):
+def check_attribute_conflict(att_batch, att_name, att_names):# att_names = ['band', 'blast', 'meta','myelo', 'promyelo', 'seg']
     def _get(att, att_name):
         if att_name in att_names:
             return att[att_names.index(att_name)]
@@ -114,10 +182,10 @@ def check_attribute_conflict(att_batch, att_name, att_names):
     def _set(att, value, att_name):
         if att_name in att_names:
             att[att_names.index(att_name)] = value
-    att_id = att_names.index(att_name)
+    att_id = att_names.index(att_name) # first time 0 second time 1....
     for att in att_batch:
         if att_name in ['Bald', 'Receding_Hairline'] and att[att_id] != 0:
-            if _get(att, 'Bangs') != 0:
+            if _get(att, 'Bangs') != 0: # if this type is not bangs
                 _set(att, 1-att[att_id], 'Bangs')
         elif att_name == 'Bangs' and att[att_id] != 0:
             for n in ['Bald', 'Receding_Hairline']:
@@ -145,17 +213,17 @@ if __name__ == '__main__':
     import torchvision.utils as vutils
 
     attrs_default = [
-        'Bald', 'Bangs', 'Black_Hair', 'Blond_Hair', 'Brown_Hair', 'Bushy_Eyebrows',
-        'Eyeglasses', 'Male', 'Mouth_Slightly_Open', 'Mustache', 'No_Beard', 'Pale_Skin', 'Young'
+        'band', 'blast', 'meta',
+        'myelo', 'promyelo', 'seg'
     ]
     
     parser = argparse.ArgumentParser()
     parser.add_argument('--attrs', dest='attrs', default=attrs_default, nargs='+', help='attributes to test')
-    parser.add_argument('--data_path', dest='data_path', type=str, required=True)
-    parser.add_argument('--attr_path', dest='attr_path', type=str, required=True)
+    parser.add_argument('--data_path', dest='data_path', type=str, default='data/wbc')
+    parser.add_argument('--attr_path', dest='attr_path', type=str, default='data/WBC_train.txt')
     args = parser.parse_args()
     
-    dataset = CelebA(args.data_path, args.attr_path, 128, 'valid', args.attrs)
+    dataset = WBC(args.data_path, args.attr_path, 256, 'valid', args.attrs)
     dataloader = data.DataLoader(
         dataset, batch_size=64, shuffle=False, drop_last=False
     )
