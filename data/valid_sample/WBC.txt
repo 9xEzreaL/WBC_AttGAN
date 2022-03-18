@@ -1,0 +1,15 @@
+num
+cls0 cls1 cls2 cls3 cls4 cls5
+band_0000.jpg 1 -1 -1 -1 -1 -1
+band_0001.jpg 1 -1 -1 -1 -1 -1
+band_0002.jpg 1 -1 -1 -1 -1 -1
+blast_0000.jpg -1 1 -1 -1 -1 -1
+blast_0001.jpg -1 1 -1 -1 -1 -1
+meta_0000.jpg -1 -1 1 -1 -1 -1
+meta_0001.jpg -1 -1 1 -1 -1 -1
+myelo_0000.jpg -1 -1 -1 1 -1 -1
+myelo_0001.jpg -1 -1 -1 1 -1 -1
+promyelo_0000.jpg -1 -1 -1 -1 1 -1
+promyelo_0001.jpg -1 -1 -1 -1 1 -1
+seg_0000.jpg -1 -1 -1 -1 -1 1
+seg_0001.jpg -1 -1 -1 -1 -1 1
