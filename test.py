@@ -17,7 +17,7 @@ import torchvision.utils as vutils
 from attgan import AttGAN
 from data import check_attribute_conflict
 from helpers import Progressbar
-from utils import find_model
+from util import find_model
 
 
 def parse(args=None):

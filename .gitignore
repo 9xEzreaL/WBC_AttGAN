@@ -3,7 +3,9 @@
 data/celeba
 data/custom
 data/img_align_celeba
+data/WBC_all
 data/list_attr_celeba.txt
 data/list_attr_custom.txt
+data/WBC_all.txt
 output/
 pics/

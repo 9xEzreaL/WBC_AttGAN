@@ -181,10 +181,10 @@ class AttGAN():
         # softmax = torch.log(torch.nn.Softmax(dim=1)(dc_fake)).cuda()
         # print(dc_fake.shape, att_b.shape)
         # gc_loss = loss_weight(softmax, att_b.long().squeeze(1))
-        gc_loss = F.binary_cross_entropy_with_logits(dc_fake, att_b, pos_weight=torch.tensor([0.05,0.2,0.1,0.2,0.35,0.1]).cuda())
+        gc_loss = F.binary_cross_entropy_with_logits(dc_fake, att_b)
         gr_loss = F.l1_loss(img_recon, img_a)
         g_loss = gf_loss + self.lambda_2 * gc_loss + self.lambda_1 * gr_loss
-        
+
         self.optim_G.zero_grad()
         g_loss.backward()
         self.optim_G.step()
