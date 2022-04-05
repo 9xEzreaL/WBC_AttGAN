@@ -224,14 +224,17 @@ for epoch in range(args.epochs):
 
     attr_list = []
     gen_attr_list = []
+    att_t_list = []
+    recon_attr_list = []
     for img_t, att_t, ID in progressbar(test_dataloader):
         attgan.eval()
         with torch.no_grad():
             img_t = img_t.cuda() if args.gpu else img_t  # [1,3,256,256]
-            if (epoch+1) % 10 == 0:
+            if (epoch + 1) % 10 == 0:
                 for type in attrs_dict:
                     os.makedirs(
-                        join('output', args.experiment_name, 'sample_testing', 'Epoch_' + str(epoch), attrs_dict[type]),
+                        join('output', args.experiment_name, 'sample_testing', 'Epoch_' + str(epoch + 1),
+                             attrs_dict[type]),
                         exist_ok=True)
             for att_t_changed in sample_att_t_list:
                 att_t_changed = att_t_changed.cuda() if args.gpu else att_t_changed  # [1,6]
@@ -242,18 +245,29 @@ for epoch in range(args.epochs):
                 _, generated_img_t_soft_classes = attgan.D(generated_img_t)
 
                 # deal save image
-                if (epoch+1) % 1 ==0:
+                if (epoch + 1) % 10 == 0:
                     att_t_changed_name = attrs_dict[str(int(np.where(att_t_changed[0].cpu() == 1)[0]) + 1)]
                     att_t_name = attrs_dict[str(int(np.where(att_t[0].cpu() == 1)[0]) + 1)]
                     vutils.save_image(generated_img_t, os.path.join(
-                        'output', args.experiment_name, 'sample_testing', 'Epoch_' + str(epoch+1), att_t_changed_name,
-                        f'{ID[0]}.jpg'
+                        'output', args.experiment_name, 'sample_testing', 'Epoch_' + str(epoch + 1), att_t_changed_name,
+                        f'{ID[0]}'
                     ), nrow=1, normalize=True, range=(-1., 1.))
                 attr_list.append(att_t_changed.detach().cpu())
                 gen_attr_list.append(generated_img_t_soft_classes.detach().cpu())
+
+            # deal recon
+            att_t = att_t.cuda() if args.gpu else att_t
+            att_t = att_t.type(torch.float)
+            att_t_ = (att_t * 2 - 1) * args.thres_int
+            recon_img_t = attgan.G(img_t, att_t_)
+            _, recon_img_t_soft_classes = attgan.D(recon_img_t)
+            att_t_list.append(att_t.detach().cpu())
+            recon_attr_list.append(recon_img_t_soft_classes.detach().cpu())
     get_metrix = Accuracy()
     accuracy = get_metrix(attr_list, gen_attr_list)
-    print(f'Epoch {epoch} accuracy : {accuracy}')
-    # progressbar.say(epoch=epoch, accuracy=accuracy)
-
+    accuracy = [accuracy[int(i) - 1] for i in attrs_dict]
+    recon_accuracy = get_metrix(att_t_list, recon_attr_list)
+    recon_accuracy = [recon_accuracy[int(i) - 1] for i in attrs_dict]
+    print(f'Epoch {epoch} recon accuracy : {recon_accuracy}')
+    print(f'Epoch {epoch} generated accuracy : {accuracy}')
 # python train.py

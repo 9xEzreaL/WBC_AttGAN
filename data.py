@@ -146,16 +146,21 @@ class WBC_all(data.Dataset):
             self.images = images[-180:]
             self.labels = labels[-180:]
 
-        self.tf = transforms.Compose([
-            transforms.RandomRotation(degrees=(0, 20)),
-            transforms.Resize(int(240 * random.uniform(1.15,1.25))),
-            transforms.ColorJitter(brightness=(0.8, 1.2),contrast=(0.9, 1.1)),
-            transforms.RandomHorizontalFlip(p=0.5),
-            transforms.RandomVerticalFlip(p=0.5),
-            transforms.ToTensor()
-            # transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
-        ])
-
+        if mode == 'train':
+            self.tf = transforms.Compose([
+                transforms.RandomRotation(degrees=(0, 20)),
+                transforms.Resize(int(240 * random.uniform(1.15,1.25))),
+                transforms.ColorJitter(brightness=(0.8, 1.2),contrast=(0.9, 1.1)),
+                transforms.RandomHorizontalFlip(p=0.5),
+                transforms.RandomVerticalFlip(p=0.5),
+                transforms.ToTensor()
+                # transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+            ])
+        else:
+            self.tf = transforms.Compose([
+                transforms.Resize(int(240 * random.uniform(1.15, 1.25))),
+                transforms.ToTensor()
+            ])
         self.length = len(self.images)
 
 
